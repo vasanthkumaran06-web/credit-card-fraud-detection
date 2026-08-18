@@ -1,23 +1,33 @@
-import os
+from pathlib import Path
+
 import joblib
 import pandas as pd
-import numpy as np
 
-MODEL_PATH = "models/fraud_detection_model.pkl"
-SCALER_PATH = "models/scaler.pkl"
-DATA_PATH = "data/creditcard.csv"
 
+# ============================================================
+# PROJECT PATHS
+# ============================================================
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+
+MODEL_PATH = BASE_DIR / "models" / "fraud_detection_model.pkl"
+SCALER_PATH = BASE_DIR / "models" / "scaler.pkl"
+
+
+# ============================================================
+# LOAD MODEL
+# ============================================================
 
 def load_artifacts():
-    """Load trained model and scaler."""
+    """Load the trained model and scaler."""
 
-    if not os.path.exists(MODEL_PATH):
+    if not MODEL_PATH.exists():
         raise FileNotFoundError(
             f"Model not found: {MODEL_PATH}\n"
             "Run: python3 src/train.py"
         )
 
-    if not os.path.exists(SCALER_PATH):
+    if not SCALER_PATH.exists():
         raise FileNotFoundError(
             f"Scaler not found: {SCALER_PATH}\n"
             "Run: python3 src/train.py"
@@ -29,15 +39,38 @@ def load_artifacts():
     return model, scaler
 
 
+# ============================================================
+# DEMO TRANSACTION
+# ============================================================
+
+def get_demo_transaction(model):
+    """
+    Create a demonstration transaction without requiring
+    the original training dataset.
+    """
+
+    feature_names = list(model.feature_names_in_)
+
+    transaction = {
+        feature: 0.0
+        for feature in feature_names
+    }
+
+    transaction["Time"] = 1000.0
+    transaction["Amount"] = 50.0
+
+    return transaction
+
+
+# ============================================================
+# PREPROCESS TRANSACTION
+# ============================================================
+
 def preprocess_transaction(transaction, scaler):
     """
-    Prepare one transaction for the trained model.
+    Prepare one transaction for prediction.
 
-    The training pipeline scaled only:
-    - Time
-    - Amount
-
-    V1-V28 are already PCA-transformed features.
+    Only Time and Amount were scaled during training.
     """
 
     df = pd.DataFrame([transaction])
@@ -50,6 +83,10 @@ def preprocess_transaction(transaction, scaler):
 
     return df
 
+
+# ============================================================
+# PREDICTION
+# ============================================================
 
 def predict_transaction(transaction):
     """Predict whether a transaction is fraudulent."""
@@ -70,21 +107,9 @@ def predict_transaction(transaction):
     return prediction, probability
 
 
-def get_sample_transaction():
-    """
-    Load a real transaction from the dataset
-    for demonstration purposes.
-    """
-
-    df = pd.read_csv(DATA_PATH)
-
-    # Select a known legitimate transaction.
-    legitimate = df[df["Class"] == 0].iloc[0]
-
-    transaction = legitimate.drop("Class").to_dict()
-
-    return transaction
-
+# ============================================================
+# DISPLAY RESULT
+# ============================================================
 
 def print_prediction(transaction):
     """Display prediction in a readable format."""
@@ -92,6 +117,8 @@ def print_prediction(transaction):
     prediction, probability = predict_transaction(
         transaction
     )
+
+    legitimate_probability = 1 - probability
 
     print("\n" + "=" * 60)
     print("CREDIT CARD FRAUD PREDICTION")
@@ -103,37 +130,51 @@ def print_prediction(transaction):
         print("\nPrediction: LEGITIMATE")
 
     print(
-        f"Fraud Probability: {probability * 100:.2f}%"
+        f"Fraud Probability: "
+        f"{probability * 100:.2f}%"
     )
 
     print(
         f"Legitimate Probability: "
-        f"{(1 - probability) * 100:.2f}%"
+        f"{legitimate_probability * 100:.2f}%"
     )
 
     print("\n" + "-" * 60)
 
     if prediction == 1:
         print(
-            "⚠️  WARNING: This transaction has been "
+            "WARNING: This transaction has been "
             "classified as potentially fraudulent."
         )
     else:
         print(
-            "✓ This transaction has been classified "
+            "This transaction has been classified "
             "as legitimate."
         )
 
     print("-" * 60)
 
 
+# ============================================================
+# MAIN
+# ============================================================
+
 def main():
+
     print("\nLoading trained model...")
 
-    transaction = get_sample_transaction()
+    model, _ = load_artifacts()
 
-    print("Using a real transaction from the dataset")
-    print("for prediction demonstration.")
+    print(
+        "Using a built-in demonstration transaction."
+    )
+
+    print(
+        "The original training dataset is not required "
+        "for prediction."
+    )
+
+    transaction = get_demo_transaction(model)
 
     print_prediction(transaction)
 
