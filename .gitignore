@@ -2,3 +2,17 @@
 # Large datasets
 data/creditcard.csv
 data/creditcard.csv.zip
+
+# Python environment
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Large datasets
+data/creditcard.csv
+data/creditcard.csv.zip
